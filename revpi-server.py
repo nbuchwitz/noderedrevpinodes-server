@@ -84,8 +84,8 @@ def ignore_aiohttp_ssl_eror(loop):
                 and exception.reason == 'KRB5_S_INIT'
                 and isinstance(protocol, SSL_PROTOCOLS)
             ):
-                if loop.get_debug():
-                    asyncio.log.logger.debug('Ignoring asyncio SSL KRB5_S_INIT error')
+                # if loop.get_debug():
+                logging.WARNING('Ignoring asyncio SSL KRB5_S_INIT error')
                 return
         if orig_handler is not None:
             orig_handler(loop, context)
@@ -93,6 +93,7 @@ def ignore_aiohttp_ssl_eror(loop):
             loop.default_exception_handler(context)
 
     loop.set_exception_handler(ignore_ssl_error)
+
 
 class Websocket_Client:
     def __init__(self, websocket):
@@ -184,7 +185,7 @@ class RevPiServer:
         if self.block_external_connections:
             ip = '127.0.0.1'
 
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         localhost_pem = os.path.abspath(self.cert_file)
 
         ssl_context.load_cert_chain(self.cert_file, self.private_key_file)
@@ -389,35 +390,22 @@ class RevPiServer:
 
         client = Websocket_Client(websocket)
 
-        with self.connected_clients_lock:        
+        with self.connected_clients_lock:
             self.connected_clients[client.id] = client
 
         try:
             while self.running:
-                #retrieve_task = asyncio.ensure_future(self.get_client_requests(client, path))
-                #publish_task = asyncio.ensure_future(self.publish_messages_to_all(client, path))
-
-                #tasks = [retrieve_task, publish_task]
-
-                #results = await asyncio.gather(*tasks, return_exceptions=True)
-
-                #reraise gathered exceptions to find disconnected clients
-                #for result in results:
-                #   if isinstance(result, Exception):
-                #       raise result
-                
                 retrieve_task = asyncio.ensure_future(self.get_client_requests(client, path))
                 publish_task = asyncio.ensure_future(self.publish_messages_to_client(client, path))
-                done, pending = await asyncio.wait([retrieve_task, publish_task],
-                                                    return_when=asyncio.FIRST_COMPLETED
-                                                    )
-                for task in pending:
-                    task.cancel()
-                    
-                for task in done:
-                    ex = task.exception()
-                    if ex:
-                        raise ex
+
+                tasks = [retrieve_task, publish_task]
+
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                # reraise gathered exceptions to find disconnected clients
+                for result in results:
+                  if isinstance(result, Exception):
+                      raise result
 
                 await asyncio.sleep(0.1)
         except websockets.ConnectionClosed as e:
