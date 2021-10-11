@@ -141,7 +141,7 @@ class RevPiServer:
 
         ssl_context.load_cert_chain(self.cert_file, self.private_key_file)
 
-        start_server = websockets.serve(self.handle_clients, ip, self.port, loop=self.event_loop, ssl=ssl_context)
+        start_server = websockets.serve(self.handle_clients, ip, self.port, loop=self.event_loop, ssl=ssl_context, ping_timeout=None)
 
         self.event_loop.run_until_complete(start_server)
         self.event_loop.run_forever()
