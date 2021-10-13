@@ -85,7 +85,7 @@ def ignore_aiohttp_ssl_eror(loop):
                 and isinstance(protocol, SSL_PROTOCOLS)
             ):
                 # if loop.get_debug():
-                logging.WARNING('Ignoring asyncio SSL KRB5_S_INIT error')
+                logging.warning('Ignoring asyncio SSL KRB5_S_INIT error')
                 return
         if orig_handler is not None:
             orig_handler(loop, context)
